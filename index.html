@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ALVA LAUNDRY - Sistem POS</title>
+    
+    <!-- PWA META TAGS -->
+    <meta name="theme-color" content="#0a192f">
+    <meta name="description" content="Sistem POS Kasir & Manajemen Operasional Laundry ALVA">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" href="icon-192.png">
+
+    <!-- BOOTSTRAP 5 & FONT AWESOME -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --alva-blue: #0a192f;
+            --alva-gold: #f1c40f;
+            --alva-light: #f8f9fa;
+        }
+        body { background-color: var(--alva-light); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        /* Login Screen */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, var(--alva-blue) 0%, #112d4e 100%);
+            z-index: 9999; display: flex; align-items: center; justify-content: center;
+        }
+        .login-card { background: white; border-radius: 15px; padding: 2rem; width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .login-logo { width: 120px; margin-bottom: 1rem; }
+
+        /* Main App Layout */
+        #main-app { display: none; }
+        .sidebar { background: var(--alva-blue); color: white; min-height: 100vh; }
+        .sidebar .nav-link { color: rgba(255,255,255,0.7); padding: 12px 20px; border-radius: 8px; margin-bottom: 5px; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { background: rgba(255,255,255,0.1); color: var(--alva-gold); }
+        .sidebar .nav-link i { width: 25px; text-align: center; margin-right: 10px; }
+        
+        .top-header { background: white; padding: 15px 20px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
+        .outlet-status { font-size: 0.85rem; color: #6c757d; }
+        .status-online { color: #28a745; font-weight: bold; }
+
+        /* Cards & Stats */
+        .stat-card { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-icon { width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+        
+        /* Mobile Bottom Nav */
+        .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: var(--alva-blue); z-index: 1000; padding: 8px 0; }
+        .bottom-nav .nav-link { color: rgba(255,255,255,0.6); text-align: center; font-size: 0.75rem; padding: 5px; }
+        .bottom-nav .nav-link.active { color: var(--alva-gold); }
+        .bottom-nav .nav-link i { font-size: 1.2rem; display: block; margin-bottom: 2px; }
+
+        @media (max-width: 767px) {
+            .sidebar { display: none; }
+            .bottom-nav { display: flex; justify-content: space-around; }
+            #main-app { padding-bottom: 70px; }
+        }
+
+        .section-content { display: none; animation: fadeIn 0.3s; }
+        .section-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <!-- ================= LOGIN SCREEN ================= -->
+    <div id="login-screen">
+        <div class="login-card text-center">
+            <img src="icon-192.png" alt="ALVA Logo" class="login-logo" onerror="this.src='https://via.placeholder.com/120x120/0a192f/f1c40f?text=ALVA'">
+            <h4 class="fw-bold text-dark mb-1">ALVA LAUNDRY</h4>
+            <p class="text-muted small mb-4">Sistem POS Kasir & Manajemen Operasional</p>
+            
+            <div id="login-error" class="alert alert-danger py-2 small d-none">Username atau password salah!</div>
+            
+            <form id="login-form">
+                <div class="mb-3 text-start">
+                    <label class="form-label small fw-bold">Nama Kasir / Petugas</label>
+                    <input type="text" class="form-control" id="username" value="Admin" required>
+                </div>
+                <div class="mb-4 text-start">
+                    <label class="form-label small fw-bold">Password</label>
+                    <input type="password" class="form-control" id="password" value="admin" required>
+                </div>
+                <button type="submit" class="btn w-100 text-white fw-bold" style="background-color: var(--alva-blue);">Masuk ke Sistem</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MAIN APPLICATION ================= -->
+    <div id="main-app" class="container-fluid">
+        <div class="row">
+            
+            <!-- Desktop Sidebar -->
+            <div class="col-md-2 sidebar p-3 d-none d-md-block">
+                <div class="text-center mb-4">
+                    <img src="icon-192.png" alt="Logo" width="60" onerror="this.src='https://via.placeholder.com/60/0a192f/f1c40f?text=A'">
+                    <h6 class="fw-bold mt-2 mb-0 text-white">ALVA LAUNDRY</h6>
+                    <small class="text-muted" style="font-size: 0.7rem;">Laundry & Dry Clean Pro</small>
+                </div>
+                <ul class="nav flex-column" id="desktop-nav">
+                    <li class="nav-item"><a class="nav-link active" href="#" data-target="order-baru"><i class="fas fa-cash-register"></i> Kasir / Order Baru</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" data-target="status-laundry"><i class="fas fa-tshirt"></i> Status Laundry</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" data-target="kurir"><i class="fas fa-motorcycle"></i> Kurir & Antar-Jemput</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" data-target="pelanggan"><i class="fas fa-users"></i> Pelanggan & Deposit</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" data-target="stok"><i class="fas fa-boxes-stacked"></i> Stok Inventaris</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" data-target="laporan"><i class="fas fa-chart-line"></i> Laporan Keuangan</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" data-target="pengaturan"><i class="fas fa-cog"></i> Pengaturan</a></li>
+                    <li class="nav-item mt-4"><a class="nav-link text-danger" href="#" id="btn-logout"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                </ul>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="col-md-10 p-0">
+                <!-- Top Header -->
+                <div class="top-header">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-dark" id="page-title">Kasir / Order Baru</h5>
+                        <div class="outlet-status">
+                            <i class="fas fa-map-marker-alt"></i> Kampung Rawa Sentul, Jayamukti, Cikarang Pusat | 
+                            <a href="http://wa.me/085814736448" class="text-decoration-none"><i class="fab fa-whatsapp"></i> 085814736448</a> | 
+                            <span class="status-online"><i class="fas fa-circle" style="font-size: 8px;"></i> Online</span>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold text-dark">Kasir: <span id="active-cashier">Admin</span></div>
+                        <small class="text-muted" id="current-date"></small>
+                    </div>
+                </div>
+
+                <!-- Content Sections -->
+                <div class="p-3 p-md-4">
+                    
+                    <!-- 1. ORDER BARU -->
+                    <div id="order-baru" class="section-content active">
+                        <div class="row g-4">
+                            <div class="col-lg-8">
+                                <div class="card stat-card p-4">
+                                    <h6 class="fw-bold mb-3"><i class="fas fa-user me-2"></i>Data Pelanggan</h6>
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <select class="form-select" id="select-customer">
+                                                <option value="">-- Pilih Pelanggan --</option>
+                                                <option value="new">+ Pelanggan Baru</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <input type="text" class="form-control" placeholder="No. WhatsApp Kostumer" id="cust-wa">
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="alert alert-info py-2 mb-0 small">
+                                                <i class="fas fa-star text-warning"></i> Poin Loyalitas: <b>0 Pts</b> | Sisa Paket Deposit: <b>0.0 Kg</b>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <hr class="my-4">
+                                    <h6 class="fw-bold mb-3"><i class="fas fa-weight-hanging me-2"></i>Pilih Jenis Layanan & Timbangan</h6>
+                                    <div class="row g-2">
+                                        <div class="col-md-4">
+                                            <select class="form-select" id="service-type">
+                                                <option value="kiloan">Layanan Kiloan Reguler</option>
+                                                <option value="satuan">Layanan Satuan / Dry Clean</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <input type="number" class="form-control" placeholder="Berat (kg)" id="weight-kg" value="1.0">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <input type="number" class="form-control" placeholder="Jumlah (Pcs)" id="qty-pcs" disabled>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <label class="form-label small">Kecepatan Layanan</label>
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="radio" class="btn-check" name="speed" id="speed-reg" checked>
+                                                <label class="btn btn-outline-primary" for="speed-reg">Reguler (1 Hari)</label>
+                                                <input type="radio" class="btn-check" name="speed" id="speed-exp">
+                                                <label class="btn btn-outline-primary" for="speed-exp">Express 12 Jam (+Rp3rb)</label>
+                                                <input type="radio" class="btn-check" name="speed" id="speed-kilat">
+                                                <label class="btn btn-outline-primary" for="speed-kilat">Kilat 6 Jam (+Rp4rb)</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <textarea class="form-control" rows="2" placeholder="Catatan Khusus / Noda..."></textarea>
+                                        </div>
+                                    </div>
+
+                                    <hr class="my-4">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="delivery-toggle">
+                                        <label class="form-check-label fw-bold" for="delivery-toggle">Gunakan Layanan Antar - Jemput (+Rp 10.000)</label>
+                                    </div>
+                                    <div id="delivery-details" class="d-none mt-3 p-3 bg-light rounded">
+                                        <input type="text" class="form-control mb-2" placeholder="Alamat Lengkap Pengantaran">
+                                        <select class="form-select">
+                                            <option>Pilih Kurir</option>
+                                            <option>Kurir Budi</option>
+                                            <option>Kurir Agus</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-4">
+                                <div class="card stat-card p-4 border-primary">
+                                    <h6 class="fw-bold mb-3 text-primary">Ringkasan Pembayaran <span class="float-end text-muted small">#ORD-NEW</span></h6>
+                                    <ul class="list-unstyled small">
+                                        <li class="d-flex justify-content-between mb-2"><span>Layanan Kiloan Reguler (1.0 kg)</span> <b>Rp 7.000</b></li>
+                                        <li class="d-flex justify-content-between mb-2"><span>Biaya Ekspres</span> <b>Rp 0</b></li>
+                                        <li class="d-flex justify-content-between mb-2"><span>Ongkos Kirim Kurir</span> <b>Rp 0</b></li>
+                                        <li class="d-flex justify-content-between mt-3 pt-2 border-top"><span class="fw-bold fs-5">Total Tagihan</span> <b class="fw-bold fs-5 text-primary">Rp 7.000</b></li>
+                                        <li class="text-success small mt-2"><i class="fas fa-star"></i> +7 Poin Loyalitas</li>
+                                    </ul>
+
+                                    <label class="form-label small fw-bold mt-3">Metode Pembayaran</label>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6"><button class="btn btn-primary w-100 btn-sm"><i class="fas fa-money-bill-wave"></i> Tunai</button></div>
+                                        <div class="col-6"><button class="btn btn-outline-secondary w-100 btn-sm"><i class="fas fa-qrcode"></i> QRIS</button></div>
+                                        <div class="col-6"><button class="btn btn-outline-secondary w-100 btn-sm"><i class="fas fa-university"></i> Transfer</button></div>
+                                        <div class="col-6"><button class="btn btn-outline-secondary w-100 btn-sm"><i class="fas fa-wallet"></i> Deposit</button></div>
+                                    </div>
+
+                                    <input type="number" class="form-control mb-2" placeholder="Jumlah Uang Diterima (Rp)">
+                                    <div class="d-flex justify-content-between small mb-3">
+                                        <span>Kembalian:</span> <b>Rp 0</b>
+                                    </div>
+                                    <div class="alert alert-success py-2 text-center small fw-bold mb-3">Status: LUNAS</div>
+
+                                    <button class="btn btn-success w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#modal-struk">
+                                        <i class="fas fa-save me-2"></i>Simpan Transaksi & Cetak Nota
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. STATUS LAUNDRY -->
+                    <div id="status-laundry" class="section-content">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold mb-0">Status Operasional Laundry</h5>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary active">Semua</button>
+                                <button class="btn btn-outline-primary">Diterima</button>
+                                <button class="btn btn-outline-primary">Dicuci</button>
+                                <button class="btn btn-outline-primary">Setrika</button>
+                                <button class="btn btn-outline-primary">Selesai</button>
+                            </div>
+                        </div>
+                        <div class="card stat-card p-3">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID Order</th><th>Pelanggan</th><th>Layanan / Berat</th><th>Total & Status Bayar</th><th>Proses Laundry</th><th>Tgl Masuk</th><th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted py-4">Belum ada data order hari ini.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. KURIR -->
+                    <div id="kurir" class="section-content">
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4"><div class="card stat-card p-3 border-warning"><div class="d-flex align-items-center"><div class="stat-icon bg-warning bg-opacity-10 text-warning me-3"><i class="fas fa-clock"></i></div><div><small class="text-muted">Perlu Penjemputan</small><h4 class="fw-bold mb-0">0</h4></div></div></div></div>
+                            <div class="col-md-4"><div class="card stat-card p-3 border-primary"><div class="d-flex align-items-center"><div class="stat-icon bg-primary bg-opacity-10 text-primary me-3"><i class="fas fa-motorcycle"></i></div><div><small class="text-muted">Sedang Diantar</small><h4 class="fw-bold mb-0">0</h4></div></div></div></div>
+                            <div class="col-md-4"><div class="card stat-card p-3 border-success"><div class="d-flex align-items-center"><div class="stat-icon bg-success bg-opacity-10 text-success me-3"><i class="fas fa-check-circle"></i></div><div><small class="text-muted">Antar-Jemput Selesai</small><h4 class="fw-bold mb-0">0</h4></div></div></div></div>
+                        </div>
+                        <div class="card stat-card p-4">
+                            <div class="d-flex justify-content-between mb-3"><h6 class="fw-bold mb-0">Manajemen Kurir & Delivery</h6><button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modal-jadwal"><i class="fas fa-plus"></i> Tambah Jadwal</button></div>
+                            <p class="text-muted small">Jadwal penjemputan dari rumah pelanggan dan pengantaran laundry bersih.</p>
+                        </div>
+                    </div>
+
+                    <!-- 4. PELANGGAN -->
+                    <div id="pelanggan" class="section-content">
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6"><div class="card stat-card p-3"><h6 class="fw-bold">Top-up Deposit / Paket Kg</h6><p class="text-muted small mb-3">Beli paket membership untuk pelanggan.</p><button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modal-deposit">Beli Paket</button></div></div>
+                            <div class="col-md-6"><div class="card stat-card p-3"><h6 class="fw-bold">Tambah Pelanggan</h6><p class="text-muted small mb-3">Daftarkan pelanggan baru ke database CRM.</p><button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-pelanggan">Tambah Baru</button></div></div>
+                        </div>
+                        <div class="card stat-card p-3">
+                            <h6 class="fw-bold mb-3">Daftar Pelanggan Terdaftar</h6>
+                            <div class="table-responsive">
+                                <table class="table table-striped mb-0">
+                                    <thead><tr><th>Nama</th><th>No. WhatsApp</th><th>Poin</th><th>Sisa Deposit</th><th>Total Order</th><th>Aksi</th></tr></thead>
+                                    <tbody><tr><td colspan="6" class="text-center text-muted py-3">Database kosong.</td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. STOK -->
+                    <div id="stok" class="section-content">
+                        <div class="alert alert-warning d-flex align-items-center" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <div><b>Peringatan Stok Menipis!</b> Beberapa bahan baku berada di bawah batas minimum.</div>
+                        </div>
+                        <div class="card stat-card p-3">
+                            <div class="d-flex justify-content-between mb-3"><h6 class="fw-bold mb-0">Stok Inventaris Bahan Baku</h6><button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modal-restok"><i class="fas fa-plus"></i> Restok</button></div>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light"><tr><th>Nama Item</th><th>Kategori</th><th>Sisa Stok</th><th>Min. Stok</th><th>Status</th><th>Aksi</th></tr></thead>
+                                    <tbody><tr><td colspan="6" class="text-center text-muted py-3">Belum ada data stok.</td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 6. LAPORAN -->
+                    <div id="laporan" class="section-content">
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-3"><div class="card stat-card p-3 text-center"><small class="text-muted">Total Omzet</small><h4 class="fw-bold text-primary mb-0">Rp 0</h4></div></div>
+                            <div class="col-md-3"><div class="card stat-card p-3 text-center"><small class="text-muted">Total Kiloan</small><h4 class="fw-bold text-info mb-0">0.0 Kg</h4></div></div>
+                            <div class="col-md-3"><div class="card stat-card p-3 text-center"><small class="text-muted">Transaksi Selesai</small><h4 class="fw-bold text-success mb-0">0</h4></div></div>
+                            <div class="col-md-3"><div class="card stat-card p-3 text-center"><small class="text-muted">Est. Laba Bersih (68%)</small><h4 class="fw-bold text-warning mb-0">Rp 0</h4></div></div>
+                        </div>
+                        <div class="card stat-card p-4 text-center py-5">
+                            <i class="fas fa-chart-pie fa-3x text-muted mb-3"></i>
+                            <h5 class="fw-bold text-muted">Grafik Omzet & Komposisi Layanan</h5>
+                            <p class="text-muted small">Data akan muncul setelah ada transaksi.</p>
+                            <div class="mt-3">
+                                <button class="btn btn-success btn-sm me-2"><i class="fab fa-whatsapp"></i> Kirim Laporan WA</button>
+                                <button class="btn btn-secondary btn-sm"><i class="fas fa-print"></i> Cetak Laporan</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 7. PENGATURAN -->
+                    <div id="pengaturan" class="section-content">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="card stat-card p-4">
+                                    <h6 class="fw-bold mb-3"><i class="fas fa-tags me-2"></i>Katalog Produk & Harga</h6>
+                                    <button class="btn btn-primary btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#modal-layanan"><i class="fas fa-plus"></i> Tambah Layanan</button>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm mb-0"><thead><tr><th>Nama</th><th>Harga</th><th>Satuan</th><th>Aksi</th></tr></thead><tbody><tr><td colspan="4" class="text-center text-muted small py-2">Katalog kosong.</td></tr></tbody></table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card stat-card p-4 mb-4">
+                                    <h6 class="fw-bold mb-3"><i class="fas fa-user-tag me-2"></i>Kasir Bertugas</h6>
+                                    <input type="text" class="form-control mb-2" id="setting-cashier" value="Admin">
+                                    <button class="btn btn-primary btn-sm" id="btn-save-cashier">Simpan Kasir</button>
+                                </div>
+                                <div class="card stat-card p-4 mb-4">
+                                    <h6 class="fw-bold mb-3"><i class="fas fa-store me-2"></i>Profil Outlet</h6>
+                                    <input type="text" class="form-control mb-2" value="ALVA LAUNDRY">
+                                    <input type="text" class="form-control mb-2" value="Laundry & Dry Clean Pro System">
+                                    <input type="text" class="form-control mb-2" value="Kampung Rawa Sentul, Jayamukti, Cikarang Pusat">
+                                    <input type="text" class="form-control mb-2" value="085814736448">
+                                    <button class="btn btn-primary btn-sm mt-2">Simpan Profil</button>
+                                </div>
+                                <div class="card stat-card p-4 border-danger">
+                                    <h6 class="fw-bold mb-3 text-danger"><i class="fas fa-database me-2"></i>Cadangkan & Reset Data</h6>
+                                    <button class="btn btn-outline-success btn-sm me-2"><i class="fas fa-download"></i> Export JSON</button>
+                                    <button class="btn btn-outline-warning btn-sm me-2"><i class="fas fa-upload"></i> Restore</button>
+                                    <button class="btn btn-outline-danger btn-sm"><i class="fas fa-trash"></i> Reset Data</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MOBILE BOTTOM NAV ================= -->
+    <div class="bottom-nav" id="mobile-nav">
+        <a class="nav-link active" href="#" data-target="order-baru"><i class="fas fa-cash-register"></i>Kasir</a>
+        <a class="nav-link" href="#" data-target="status-laundry"><i class="fas fa-tshirt"></i>Status</a>
+        <a class="nav-link" href="#" data-target="kurir"><i class="fas fa-motorcycle"></i>Kurir</a>
+        <a class="nav-link" href="#" data-target="laporan"><i class="fas fa-chart-line"></i>Laporan</a>
+        <a class="nav-link" href="#" data-target="pengaturan"><i class="fas fa-cog"></i>Setting</a>
+    </div>
+
+    <!-- ================= MODALS ================= -->
+    <!-- Modal Struk -->
+    <div class="modal fade" id="modal-struk" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0"><h5 class="modal-title fw-bold">Transaksi Berhasil!</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body text-center">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <p>Nota order telah disimpan.</p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center">
+                    <button class="btn btn-success"><i class="fab fa-whatsapp"></i> Kirim Struk via WA</button>
+                    <button class="btn btn-primary"><i class="fas fa-print"></i> Cetak Struk</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Tambah Pelanggan -->
+    <div class="modal fade" id="modal-pelanggan" tabindex="-1">
+        <div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Tambah Pelanggan Baru</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="text" class="form-control mb-2" placeholder="Nama Lengkap"><input type="text" class="form-control mb-2" placeholder="No. WhatsApp"><textarea class="form-control" placeholder="Alamat"></textarea></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary">Simpan</button></div></div></div>
+    </div>
+
+    <!-- Modal Deposit -->
+    <div class="modal fade" id="modal-deposit" tabindex="-1">
+        <div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Beli Paket Deposit</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><select class="form-select mb-3"><option>Paket Coba-coba 20 Kg - Rp 130.000</option><option>Paket Hemat 50 Kg - Rp 300.000</option><option>Paket Sultan 100 Kg - Rp 550.000</option></select></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-warning">Proses Top-Up</button></div></div></div>
+    </div>
+
+    <!-- Modal Jadwal Kurir -->
+    <div class="modal fade" id="modal-jadwal" tabindex="-1">
+        <div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Jadwal Penjemputan Baru</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="text" class="form-control mb-2" placeholder="Nama Pelanggan"><input type="text" class="form-control mb-2" placeholder="Alamat"><select class="form-select mb-2"><option>Kurir Budi</option><option>Kurir Agus</option></select><input type="time" class="form-control"></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary">Simpan</button></div></div></div>
+    </div>
+
+    <!-- Modal Restok -->
+    <div class="modal fade" id="modal-restok" tabindex="-1">
+        <div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Restok Bahan Baku</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><select class="form-select mb-2"><option>Sabun Cair</option><option>Parfum Laundry</option><option>Plastik Packing</option></select><input type="number" class="form-control" placeholder="Jumlah Tambahan"></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary">Update Stok</button></div></div></div>
+    </div>
+
+    <!-- Modal Tambah Layanan -->
+    <div class="modal fade" id="modal-layanan" tabindex="-1">
+        <div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Tambah Produk Layanan</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="text" class="form-control mb-2" placeholder="Nama Layanan"><input type="number" class="form-control mb-2" placeholder="Harga (Rp)"><select class="form-select"><option>Per Kilo (kg)</option><option>Per Potong (pcs)</option><option>Per Pasang</option></select></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary">Simpan</button></div></div></div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Set Tanggal Hari Ini
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+        // Login Logic (Simulasi)
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Di aplikasi nyata, validasi ke database/API di sini
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
+        });
+
+        // Logout
+        document.getElementById('btn-logout').addEventListener('click', function() {
+            document.getElementById('main-app').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'flex';
+        });
+
+        // Navigasi Tab (SPA Logic)
+        const navLinks = document.querySelectorAll('.nav-link[data-target]');
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('data-target');
+                
+                // Hapus active dari semua link & section
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                document.querySelectorAll('.section-content').forEach(s => s.classList.remove('active'));
+                
+                // Tambahkan active ke yang diklik (sinkronkan desktop & mobile)
+                document.querySelectorAll(`.nav-link[data-target="${targetId}"]`).forEach(l => l.classList.add('active'));
+                document.getElementById(targetId).classList.add('active');
+                
+                // Update Judul Halaman
+                document.getElementById('page-title').innerText = this.innerText.trim();
+            });
+        });
+
+        // Toggle Detail Delivery
+        document.getElementById('delivery-toggle').addEventListener('change', function() {
+            document.getElementById('delivery-details').classList.toggle('d-none', !this.checked);
+        });
+
+        // Simpan Nama Kasir
+        document.getElementById('btn-save-cashier').addEventListener('click', function() {
+            const newName = document.getElementById('setting-cashier').value;
+            document.getElementById('active-cashier').innerText = newName;
+            alert('Nama kasir berhasil diperbarui!');
+        });
+
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>
